@@ -33,12 +33,11 @@ void sigchld(int signo)
 void handler(int cli)
 {
     char buf[65536];
-    char filename[1024] = "/home/mysp/Pictures/";
     int img, len, tmpcnt = 0;
-    FILE *f_upload, *f_inserv;
+    FILE *f_inserv;
     char *ptr;
-    char tempname[128];
-    // char type[8],c_index[3];
+    char filename[128];
+
 
     memset(buf, 0, sizeof(buf));
     read(cli, buf, sizeof(buf));
@@ -52,30 +51,27 @@ void handler(int cli)
     else if (strncmp(buf, "POST /", 6) == 0)
     {
         ptr = strstr(buf, "filename");
+        // printf("%s",buf);
         if (ptr)
         {
             len = strlen("filename");
             ptr += len + 2;
             while (*ptr != '\"')
             {
-                tempname[tmpcnt++] = *ptr++;
+                filename[tmpcnt++] = *ptr++;
             }
-            tempname[tmpcnt] = '\0';
-            strcat(filename, tempname);
-            printf("filename: %s\n", filename);
-            if ((f_upload = fopen(filename, "rb")) == NULL)
-            {
-                printf("error");
-                exit(0);
+            filename[tmpcnt] = '\0';
+
+            while(!(*(ptr-4)=='\r' && *(ptr-3)=='\n' && *(ptr-2)=='\r' && *(ptr-1)=='\n')) ptr++; //文件開頭
+            char *tail=buf+strlen(buf)-3;
+				while(*tail!='\r') tail--; //文件結尾
+
+            f_inserv = fopen(filename, "w");
+            while(ptr!=tail){
+                fputc(*ptr,f_inserv);
+                ptr++;
             }
-            char c;
-            f_inserv = fopen(tempname, "w");
-            while (!feof(f_upload))
-            {
-                c = fgetc(f_upload);
-                fputc(c, f_inserv);
-            }
-            fclose(f_upload);
+            fputc(*ptr,f_inserv);
             fclose(f_inserv);
         }
         else
