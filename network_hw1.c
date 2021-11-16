@@ -44,6 +44,7 @@ void handler(int cli)
 
     if (strncmp(buf, "GET /shrimp.jpeg", 16) == 0)
     {
+    	//printf("%s",buf);
         img = open("shrimp.jpeg", O_RDONLY);
         sendfile(cli, img, NULL, 5000000);
         close(img);
@@ -51,7 +52,7 @@ void handler(int cli)
     else if (strncmp(buf, "POST /", 6) == 0)
     {
         ptr = strstr(buf, "filename");
-        // printf("%s",buf);
+        //printf("%s",buf);
         if (ptr)
         {
             len = strlen("filename");
@@ -73,12 +74,15 @@ void handler(int cli)
             }
             fputc(*ptr,f_inserv);
             fclose(f_inserv);
+            write(cli, web, sizeof(web));
         }
         else
             write(cli, web, sizeof(web));
     }
-    else
+    else{
+    	//printf("%s",buf);
         write(cli, web, sizeof(web));
+        }
 }
 int main(void)
 {
