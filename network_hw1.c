@@ -33,7 +33,7 @@ void handler(int cli)
 {
     char buf[65536];
     int img, len, tmpcnt = 0;
-    FILE *f_inserv; //在伺服器上建立的檔案
+    FILE *f_upload; //在伺服器上建立的檔案
     char *ptr;
     char filename[128];
 
@@ -64,15 +64,15 @@ void handler(int cli)
 
             while(!(*(ptr-4)=='\r' && *(ptr-3)=='\n' && *(ptr-2)=='\r' && *(ptr-1)=='\n')) ptr++; //文件開頭
             char *tail=buf+strlen(buf)-3;
-		while(*tail!='\r') tail--; //文件結尾
+			while(*tail!='\r') tail--; //文件結尾
 
-            f_inserv = fopen(filename, "w");
+            f_upload = fopen(filename, "w");
             while(ptr!=tail){
-                fputc(*ptr,f_inserv);
+                fputc(*ptr,f_upload);
                 ptr++;
             }
-            fputc(*ptr,f_inserv);
-            fclose(f_inserv);
+            fputc(*ptr,f_upload);
+            fclose(f_upload);
             write(cli, web, sizeof(web)); 
         }
         else
