@@ -29,9 +29,9 @@ void sigchld(int signo)
 
     while ((pid = waitpid(-1, NULL, WNOHANG)) > 0);
 }
-void handler(int cli)
+void handler(int connfd)
 {
-    char buf[65536];
+    char buf[65536]; 
     int img, len, tmpcnt = 0;
     FILE *f_upload; //在伺服器上建立的檔案
     char *ptr;
@@ -39,13 +39,13 @@ void handler(int cli)
 
 
     memset(buf, 0, sizeof(buf));
-    read(cli, buf, sizeof(buf)); //讀取socketfd內容
+    read(connfd, buf, sizeof(buf)); //讀取socketfd內容
 
     if (strncmp(buf, "GET /shrimp.jpeg", 16) == 0)
     {//讀取圖片時要做的開檔步驟
     	//printf("%s",buf);
         img = open("shrimp.jpeg", O_RDONLY);
-        sendfile(cli, img, NULL, 5000000);
+        sendfile(connfd, img, NULL, 5000000);
         close(img);
     }
     else if (strncmp(buf, "POST /", 6) == 0)
@@ -73,54 +73,53 @@ void handler(int cli)
             }
             fputc(*ptr,f_upload);
             fclose(f_upload);
-            write(cli, web, sizeof(web)); 
+            write(connfd, web, sizeof(web)); 
         }
         else
-            write(cli, web, sizeof(web));
+            write(connfd, web, sizeof(web));
     }
     else{//基本上就是處理GET / 的要求，然後將網頁內容輸出到客戶端
     	//printf("%s",buf);
-        write(cli, web, sizeof(web));
+        write(connfd, web, sizeof(web));
         }
 }
 int main(void)
 {
-    int serv, cli;
+    int listenfd, connfd;
     struct sockaddr_in server_addr;
     
     //create socket
-    serv = socket(AF_INET, SOCK_STREAM, 0);
+    listenfd = socket(AF_INET, SOCK_STREAM, 0);
     
     //連線設定
     bzero(&server_addr, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(8080);
+    server_addr.sin_family = AF_INET; //IPv4
+    server_addr.sin_port = htons(8080); //port
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY); //使用任何在本機的對外ip
     
-    //網路監視器
-    bind(serv, (struct sockaddr *)&server_addr, sizeof(server_addr));
+    //綁定socket,ip,port
+    bind(listenfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
     
     //監聽
-    int listenfd = listen(serv, 10);
-
+    listen(listenfd, 10);
     signal(SIGCHLD, sigchld);
 
     while (1)
     {
         //waiting for connection
-        cli = accept(serv, NULL, NULL);
+        connfd = accept(listenfd, NULL, NULL);
         //fork出子行程
         pid_t child = fork();
 
         if (child == 0)
         {//child
             close(listenfd);
-            handler(cli);
+            handler(connfd);
             exit(0);
         }
         else
         {//parent
-            close(cli);
+            close(connfd);
         }
     }
     return 0;
